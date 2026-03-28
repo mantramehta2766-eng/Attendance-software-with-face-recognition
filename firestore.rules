@@ -1,0 +1,70 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: students
+// Document ID: auto-generated
+// Fields:
+//   - name: string (required)
+//   - rollNumber: string (required)
+//   - class: string (required)
+//   - faceDescriptors: list (required) - Array of JSON strings of Float32Array
+//   - createdAt: timestamp (optional)
+//
+// Collection: attendance
+// Document ID: auto-generated
+// Fields:
+//   - studentId: string (required)
+//   - studentName: string (required)
+//   - rollNumber: string (required)
+//   - class: string (required)
+//   - date: string (required, YYYY-MM-DD)
+//   - timestamp: timestamp (required)
+//   - status: string (required, enum: ['present', 'absent'])
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == "mantramehta2766@gmail.com" && 
+        request.auth.token.email_verified == true
+      );
+    }
+
+    function isValidStudent(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.rollNumber is string && data.rollNumber.size() > 0 && data.rollNumber.size() < 50 &&
+             data.class is string && data.class.size() > 0 && data.class.size() < 50 &&
+             data.faceDescriptors is list && data.faceDescriptors.size() > 0 && data.faceDescriptors.size() <= 5;
+    }
+
+    function isValidAttendance(data) {
+      return data.studentId is string &&
+             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.status in ['present', 'absent'];
+    }
+
+    // Students Collection
+    match /students/{studentId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidStudent(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Attendance Collection
+    match /attendance/{recordId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidAttendance(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+  }
+}

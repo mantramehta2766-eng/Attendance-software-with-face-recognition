@@ -1,0 +1,5 @@
+{
+  "name": "FaceAttendance Pro",
+  "description": "A professional attendance management system using face recognition for schools and colleges.",
+  "requestFramePermissions": ["camera"]
+}

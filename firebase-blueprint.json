@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Represents a student enrolled in the system.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the student" },
+        "rollNumber": { "type": "string", "description": "Unique roll number or ID" },
+        "class": { "type": "string", "description": "Class or department" },
+        "faceDescriptors": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "Array of serialized face descriptor data for recognition" 
+        },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Enrollment date" }
+      },
+      "required": ["name", "rollNumber", "class", "faceDescriptors"]
+    },
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "description": "Represents a single attendance entry for a student.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "description": "Reference to the student document ID" },
+        "studentName": { "type": "string", "description": "Name of the student at the time of record" },
+        "rollNumber": { "type": "string", "description": "Roll number of the student" },
+        "class": { "type": "string", "description": "Class of the student" },
+        "date": { "type": "string", "format": "date", "description": "Date of attendance (YYYY-MM-DD)" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Exact time of marking" },
+        "status": { "type": "string", "enum": ["present", "absent"], "description": "Attendance status" }
+      },
+      "required": ["studentId", "date", "timestamp", "status"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of enrolled students."
+    },
+    "/attendance/{recordId}": {
+      "schema": "AttendanceRecord",
+      "description": "Collection of attendance records."
+    }
+  }
+}
