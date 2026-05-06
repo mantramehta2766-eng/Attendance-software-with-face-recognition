@@ -2,7 +2,7 @@ import React, { Component, useState, useEffect, Suspense, lazy } from 'react';
 import { auth, db, signInWithGoogle, logout, handleFirestoreError, OperationType } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, getDocFromServer } from 'firebase/firestore';
-import { LogIn, LogOut, Users, UserPlus, Camera, FileText, LayoutDashboard, Loader2, AlertCircle, Menu, X, GraduationCap } from 'lucide-react';
+import { LogIn, LogOut, Users, UserPlus, Camera, FileText, LayoutDashboard, Loader2, AlertCircle, Menu, X, GraduationCap, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
@@ -80,6 +80,36 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'enroll' | 'manage' | 'mark' | 'reports'>('dashboard');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return window.localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    document.body.classList.toggle('theme-dark', theme === 'dark');
+    window.localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const handleGoogleSignIn = async () => {
+    setAuthError(null);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('auth/unauthorized-domain')) {
+        const origin = window.location.origin;
+        setAuthError(
+          `Google sign-in failed because this app origin is not authorized in Firebase. Add this origin to Firebase Authentication -> Settings -> Authorized domains: ${origin}`
+        );
+      } else {
+        setAuthError(message);
+      }
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -132,12 +162,17 @@ export default function App() {
             The next generation of attendance tracking for modern educational institutions.
           </p>
           <button
-            onClick={signInWithGoogle}
+            onClick={handleGoogleSignIn}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all transform hover:scale-[1.02] active:scale-[0.98] font-semibold"
           >
             <LogIn className="w-5 h-5" />
             Sign in with Google
           </button>
+          {authError && (
+            <div className="mt-4 rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {authError}
+            </div>
+          )}
           <p className="mt-8 text-xs text-gray-400">
             Secure, fast, and reliable face recognition technology.
           </p>
@@ -156,7 +191,10 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#F8FAFC] flex relative overflow-hidden">
+      <div className={cn(
+        "min-h-screen flex relative overflow-hidden",
+        theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-[#F8FAFC]'
+      )}>
         {/* Sidebar Overlay for Mobile */}
         <AnimatePresence>
           {isSidebarOpen && (
@@ -260,6 +298,16 @@ export default function App() {
               <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">
                 {navItems.find(i => i.id === activeTab)?.label}
               </span>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => setTheme(prev => (prev === 'light' ? 'dark' : 'light'))}
+                className="p-2 rounded-lg transition-colors text-gray-500 hover:bg-gray-100"
+                title="Toggle light/dark mode"
+              >
+                {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-yellow-400" />}
+              </button>
             </div>
           </header>
 

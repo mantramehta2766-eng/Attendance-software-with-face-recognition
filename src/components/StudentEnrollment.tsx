@@ -17,6 +17,7 @@ export default function StudentEnrollment() {
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [cameraPermission, setCameraPermission] = useState<'unknown' | 'prompt' | 'granted' | 'denied'>('unknown');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,6 +35,25 @@ export default function StudentEnrollment() {
       }
     };
     init();
+
+    const checkCameraPermission = async () => {
+      if (!navigator.permissions) {
+        setCameraPermission('unknown');
+        return;
+      }
+
+      try {
+        const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        setCameraPermission(result.state as 'unknown' | 'prompt' | 'granted' | 'denied');
+        result.onchange = () => {
+          setCameraPermission(result.state as 'unknown' | 'prompt' | 'granted' | 'denied');
+        };
+      } catch {
+        setCameraPermission('unknown');
+      }
+    };
+
+    checkCameraPermission();
   }, []);
 
   const startCamera = async () => {
@@ -52,8 +72,15 @@ export default function StudentEnrollment() {
             video: { width: 1280, height: 720, facingMode: facingMode } 
           });
           videoRef.current.srcObject = stream;
-        } catch (err) {
-          setError('Could not access camera. Please ensure you have granted permission.');
+          setCameraPermission('granted');
+        } catch (err: any) {
+          const denied = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError' || String(err).includes('denied');
+          if (denied) {
+            setCameraPermission('denied');
+            setError('Camera access denied. Please allow camera permission in your browser and open the camera again.');
+          } else {
+            setError('Could not access camera. Please ensure your device has a working camera and try again.');
+          }
           setIsModalOpen(false);
         }
       }
@@ -242,13 +269,26 @@ export default function StudentEnrollment() {
             </div>
 
             <button
-              onClick={startCamera}
+              onClick={() => {
+                setError(null);
+                startCamera();
+              }}
               disabled={!isModelsLoaded || capturedDescriptors.length >= 3}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-black transition-all font-bold disabled:opacity-50"
             >
               {isModelsLoaded ? <Camera className="w-5 h-5" /> : <Loader2 className="w-5 h-5 animate-spin" />}
               {capturedDescriptors.length > 0 ? 'Add Sample' : 'Open Camera'}
             </button>
+            {cameraPermission === 'denied' && (
+              <div className="mt-4 rounded-3xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+                Camera permission is blocked. Please allow camera access in your browser settings, then open the camera again.
+              </div>
+            )}
+            {cameraPermission === 'prompt' && (
+              <div className="mt-4 rounded-3xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                The browser will ask for camera permission when you open the camera.
+              </div>
+            )}
           </div>
 
           {error && (

@@ -19,6 +19,7 @@ export default function AttendanceMarker() {
   const [lastMarked, setLastMarked] = useState<{ name: string; time: string } | null>(null);
   const [recentActivity, setRecentActivity] = useState<{ id: string; name: string; time: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<'unknown' | 'prompt' | 'granted' | 'denied'>('unknown');
   const [status, setStatus] = useState<'idle' | 'searching' | 'found' | 'already_marked' | 'detecting'>('idle');
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -69,7 +70,26 @@ export default function AttendanceMarker() {
     };
   }, []);
 
+  const checkCameraPermission = async () => {
+    if (!navigator.permissions) {
+      setCameraPermission('unknown');
+      return;
+    }
+
+    try {
+      const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+      setCameraPermission(result.state as 'unknown' | 'prompt' | 'granted' | 'denied');
+      result.onchange = () => {
+        setCameraPermission(result.state as 'unknown' | 'prompt' | 'granted' | 'denied');
+      };
+    } catch {
+      setCameraPermission('unknown');
+    }
+  };
+
   useEffect(() => {
+    checkCameraPermission();
+
     let stream: MediaStream | null = null;
 
     const enableCamera = async () => {
@@ -88,9 +108,16 @@ export default function AttendanceMarker() {
             videoRef.current.srcObject = stream;
             startRecognition();
           }
-        } catch (err) {
+          setCameraPermission('granted');
+        } catch (err: any) {
           console.error('Camera access error:', err);
-          setError('Could not access camera. Please ensure you have granted permission.');
+          const denied = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError' || String(err).includes('denied');
+          if (denied) {
+            setCameraPermission('denied');
+            setError('Camera access denied. Please allow camera permission in your browser and open the scanner again.');
+          } else {
+            setError('Could not access camera. Please ensure your device has a working camera and try again.');
+          }
           setIsModalOpen(false);
         }
       }
@@ -220,13 +247,26 @@ export default function AttendanceMarker() {
             <p className="text-gray-500 max-w-xs mx-auto">Click the button below to open the camera and mark attendance automatically.</p>
           </div>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setError(null);
+              setIsModalOpen(true);
+            }}
             disabled={!isModelsLoaded || students.length === 0}
             className="w-full py-6 bg-blue-600 text-white rounded-[2rem] hover:bg-blue-700 transition-all font-black text-2xl shadow-2xl shadow-blue-200 disabled:opacity-50 flex items-center justify-center gap-4 group-hover:scale-[1.02]"
           >
             <Camera className="w-8 h-8" />
             OPEN SCANNER
           </button>
+          {cameraPermission === 'denied' && (
+            <div className="mt-4 rounded-3xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+              Camera permission is blocked. Please allow camera access in your browser settings, then open the scanner again.
+            </div>
+          )}
+          {cameraPermission === 'prompt' && (
+            <div className="mt-4 rounded-3xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+              The browser will ask for camera permission when you open the scanner.
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">

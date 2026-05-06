@@ -10,6 +10,53 @@
   body {
     @apply font-sans antialiased text-gray-900 bg-[#F8FAFC];
   }
+
+  body.theme-dark {
+    background-color: #0f172a;
+    color: #e2e8f0;
+  }
+
+  body.theme-dark .bg-white {
+    background-color: #111827 !important;
+  }
+
+  body.theme-dark .bg-gray-50 {
+    background-color: #111827 !important;
+  }
+
+  body.theme-dark .bg-blue-50 {
+    background-color: #1e293b !important;
+  }
+
+  body.theme-dark .border-gray-200 {
+    border-color: #334155 !important;
+  }
+
+  body.theme-dark .text-gray-900 {
+    color: #f8fafc !important;
+  }
+
+  body.theme-dark .text-gray-500,
+  body.theme-dark .text-gray-400 {
+    color: #cbd5e1 !important;
+  }
+
+  body.theme-dark .text-gray-700,
+  body.theme-dark .text-gray-600 {
+    color: #e2e8f0 !important;
+  }
+
+  body.theme-dark .hover\:bg-gray-100:hover {
+    background-color: #1f2937 !important;
+  }
+
+  body.theme-dark .bg-red-50 {
+    background-color: #581c1c !important;
+  }
+
+  body.theme-dark .border-red-100 {
+    border-color: #7f1d1d !important;
+  }
 }
 
 /* Custom scrollbar */
